@@ -44,3 +44,19 @@ assert "AVIF" in data["codecs"], data
 with Image.open(next(Path(data["result"]).glob("*.jpg"))) as converted:
     assert converted.size == (120, 80)
 print("Packaged EXE: real HEIC -> JPEG conversion OK")
+rar = folder / "中文 RAR 壓縮包.rar"
+rar.write_bytes((base / "testdata" / "rar" / "rar5-solid.rar").read_bytes())
+for mode, flags in (("extract", []), ("convert", ["--convert"])):
+    report = folder / ("rar-" + mode + ".json")
+    completed = subprocess.run([exe, "--diagnostic", str(report), "--diagnostic-run", *flags, "--", str(rar)],
+                               timeout=30, creationflags=subprocess.CREATE_NO_WINDOW)
+    assert completed.returncode == 0
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["mode"] == mode and data["files"] == 2 and data["result"], data
+    assert data["rar_header_crypto"], data
+    expected = engine.extract(rar, folder / "expected").path
+    actual = Path(data["result"]) if mode == "extract" else engine.extract(data["result"], folder / "actual").path
+    for member in expected.rglob("*"):
+        if member.is_file():
+            assert (actual / member.relative_to(expected)).read_bytes() == member.read_bytes()
+    print("Packaged EXE: real RAR", mode, "and encrypted-header crypto OK")

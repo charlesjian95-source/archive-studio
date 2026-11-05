@@ -1,0 +1,23 @@
+{
+  "source": "https://raw.githubusercontent.com/markokr/rarfile/v4.2/test/files/",
+  "files": {
+    "rar3-subdirs.rar": "d3d4bd8c90b22fa01c11f460589499de06f9d28e076ec3762eea738c0903e874",
+    "rar5-subdirs.rar": "4449d0e82e09f52af23a11cd84904625de8b15beafcf73e5c30dc3296beae0b2",
+    "rar3-solid.rar": "0944932546b994f282cdb3ac724112c312d406b4c1aecfe1eaf9e734e8f96aa2",
+    "rar5-solid.rar": "d97d23b2edee9a7daa49e45015ea72aa3f162efeb0abaf559740ab797276203b",
+    "unicode.rar": "1d1d25ff7e1a4190055bda32a771a4a5e282ddd8078ce730ca44c45befcec176",
+    "rar5-psw.rar": "b6840e95152a1c3b5acd736dc34f988509866f04158b67da1b5a29e166a31355",
+    "rar5-hpsw.rar": "9aff93dfd85b1e44daeef233105831999a2076299997b7790e1cf1fd557a4457",
+    "rar3-comment-hpsw.rar": "29c61403d1e7cec0b15eb7e33cfa217cebd56bf1a4a78a2642715eca474350b2",
+    "rar3-symlink-unix.rar": "146d979ca2a659e74712a8b259a47d198af8e94f95f94599ad7d31f0f0bb2a14",
+    "rar5-symlink-win.rar": "f10df8bc1e2cf07a7ef127627e5cc526a872f97bbfc1c14145bbe8aececdabe0",
+    "rar5-hlink.rar": "c7c2db6fb021e89198da80d4b903d4a46b692c2f31fec64cb53c7e37af7a51f4",
+    "rar5-crc.rar": "9e42359428fe8d6c364536a3fe2ff4b705b4af63dfe0f56bd5cac8d042abd803",
+    "rar3-vols.part1.rar": "5a89fe55b4d9d32882544bd1d9b6f46134c80aa52939129b2b5de673dfbeb9c8",
+    "rar3-vols.part2.rar": "abbe9191d7a8e0b165b6af24784cd5541b0de4cfb9c252fbe6def46fb5a9619f",
+    "rar3-vols.part3.rar": "3ef3d6ba040b47d9f89210cb877fcf20166bf2b6299361459b5466248fb722be",
+    "rar5-vols.part1.rar": "c997e965ad319646e3bead59b372a9bd87459aa471c8bc8ad02267d43e328c2f",
+    "rar5-vols.part2.rar": "484343c1ca19e1eac8103946f1c0e7746d6df5d995f8f55395f03786ad34e709",
+    "rar5-vols.part3.rar": "0b117cf1cb7b46877124d5f07ebc45580b4a5feadc24f5578196036a32c9eadc"
+  }
+}

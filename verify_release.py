@@ -15,6 +15,10 @@ assert (app / "ArchiveStudio.exe").read_bytes().startswith(b"MZ")
 assert (app / "_internal" / "python310.dll").exists()
 assert (app / "_internal" / "assets" / "studio.ico").exists()
 assert (app / "LICENSES" / "Python-LICENSE.txt").exists()
+assert (app / "LICENSES" / "UnRAR" / "license.txt").exists()
+backend = app / "_internal" / "vendor" / "unrar" / "UnRAR.exe"
+backend_info = json.loads((app / "LICENSES" / "UnRAR" / "provenance.json").read_text(encoding="utf-8"))
+assert hashlib.sha256(backend.read_bytes()).hexdigest() == backend_info["sha256"]
 with zipfile.ZipFile(package) as archive:
     assert archive.testzip() is None
     assert "ArchiveStudio/ArchiveStudio.exe" in archive.namelist()

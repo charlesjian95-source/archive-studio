@@ -1,0 +1,10 @@
+{
+  "name": "UnRAR",
+  "version": "7.23 x64",
+  "source": "https://www.rarlab.com/rar/winrar-x64-723.exe",
+  "sha256": "0d3715001790f0fd18d3e850f947b540530b2d2deb9a2e6a9e84f2ed7b234235",
+  "source_package_sha256": "8ff0daf3ed564cc743c0e23ff2e253997ffc74460f9673f0b6dd037b2db4ce7b",
+  "license_source": "https://www.rarlab.com/rar/unrarw64.exe",
+  "signature": "win.rar GmbH; Authenticode signature verified during import",
+  "license": "Freeware; redistribution inside other software packages permitted; see license.txt"
+}

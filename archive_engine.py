@@ -1,4 +1,4 @@
-"""Archive Studio engine. Python standard library only; never deletes source or partial files."""
+"""Archive Studio engine; never deletes source or partial files."""
 from __future__ import annotations
 
 import contextlib
@@ -17,6 +17,9 @@ import unicodedata
 import zipfile
 
 FORMATS = {"ZIP": ".zip", "TAR": ".tar", "TAR.GZ": ".tar.gz"}
+READ_SUFFIXES = (".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2",
+                 ".tar.xz", ".txz", ".rar")
+ARCHIVE_FILTER = "*.zip *.rar *.tar *.gz *.tgz *.bz2 *.tbz2 *.xz *.txz"
 MAX_ENTRIES = 100_000
 MAX_BYTES = 20 * 1024 ** 3
 CHUNK = 1024 * 1024
@@ -30,6 +33,10 @@ class ArchiveError(Exception):
 
 class Cancelled(ArchiveError):
     pass
+
+
+class PasswordRequired(ArchiveError):
+    """Ask for a RAR password on the UI thread, never persist it."""
 
 
 class Entry(NamedTuple):
@@ -170,10 +177,16 @@ def collect_inputs(inputs, cancel=None):
 
 
 @contextlib.contextmanager
-def read_archive(path, cancel=None):
+def read_archive(path, cancel=None, password=None):
     path = Path(path)
     entries = []
-    if zipfile.is_zipfile(path):
+    with path.open("rb") as probe:
+        is_rar = probe.read(8).startswith(b"Rar!\x1a\x07")
+    if is_rar or path.suffix.lower() == ".rar":
+        from rar_support import read_rar
+        with read_rar(path, cancel, password) as entries:
+            yield entries
+    elif zipfile.is_zipfile(path):
         with zipfile.ZipFile(path, "r") as archive:
             for info in archive.infolist():
                 check_cancel(cancel)
@@ -201,7 +214,7 @@ def read_archive(path, cancel=None):
         try:
             archive = tarfile.open(path, "r:*")
         except (tarfile.TarError, EOFError) as exc:
-            raise ArchiveError("無法讀取壓縮包，請選擇 ZIP、TAR 或 TAR.GZ。") from exc
+            raise ArchiveError("無法讀取壓縮包，請選擇 ZIP、RAR、TAR 或 TAR.GZ。") from exc
         with archive:
             for info in archive:
                 check_cancel(cancel)
@@ -233,7 +246,7 @@ def unique_path(folder, name):
 
 def archive_stem(path):
     name = Path(path).name
-    for suffix in (".tar.gz", ".tar.bz2", ".tar.xz", ".tgz", ".tbz2", ".txz", ".zip", ".tar"):
+    for suffix in sorted(READ_SUFFIXES, key=len, reverse=True):
         if name.lower().endswith(suffix):
             return name[:-len(suffix)]
     return Path(name).stem
@@ -387,6 +400,8 @@ def _write_archive(entries, output_dir, name, format_name, level, progress, canc
         suffix = "\n未完成的檔案已保留在：\n" + str(partial) if partial.exists() else ""
         if isinstance(exc, Cancelled):
             raise Cancelled(message + suffix) from exc
+        if isinstance(exc, PasswordRequired):
+            raise PasswordRequired(message + suffix) from exc
         raise ArchiveError(message + suffix) from exc
     (progress or (lambda *args: None))(1.0, "完成", total, total)
     return Result(final, sum(not e.is_dir for e in entries), total,
@@ -398,14 +413,14 @@ def compress(inputs, output_dir, name, format_name="ZIP", level=6, progress=None
                           format_name, level, progress, cancel)
 
 
-def convert(source, output_dir, name, format_name="ZIP", level=6, progress=None, cancel=None):
-    with read_archive(source, cancel) as entries:
+def convert(source, output_dir, name, format_name="ZIP", level=6, progress=None, cancel=None, password=None):
+    with read_archive(source, cancel, password) as entries:
         return _write_archive(entries, output_dir, name, format_name, level, progress, cancel)
 
 
-def extract(source, output_dir, progress=None, cancel=None):
+def extract(source, output_dir, progress=None, cancel=None, password=None):
     started = time.monotonic()
-    with read_archive(source, cancel) as entries:
+    with read_archive(source, cancel, password) as entries:
         total = validate(entries)
         output_dir = Path(output_dir).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -438,6 +453,8 @@ def extract(source, output_dir, progress=None, cancel=None):
             suffix = "\n未完成的內容已保留在：\n" + str(staging)
             if isinstance(exc, Cancelled):
                 raise Cancelled(str(exc) + suffix) from exc
+            if isinstance(exc, PasswordRequired):
+                raise PasswordRequired(str(exc) + suffix) from exc
             raise ArchiveError((str(exc) or type(exc).__name__) + suffix) from exc
     (progress or (lambda *args: None))(1.0, "完成", total, total)
     return Result(final, sum(not e.is_dir for e in entries), total, total,

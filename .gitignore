@@ -1,5 +1,6 @@
 .build-venv/
 .build/
+.build-tools/
 .test-runs/
 __pycache__/
 dist/

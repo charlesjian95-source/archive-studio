@@ -13,6 +13,18 @@ Windows 10 / 11 64 位元桌面程式。支援壓縮包與照片轉檔。繁體�
 
 如果拿到 ArchiveStudio-Windows-x64.zip，請先將整個壓縮包解壓縮，再開啟裡面的 ArchiveStudio.exe。
 
+## 1.4：RAR 解壓縮與轉檔
+
+- 新增 RAR3、RAR5 解壓縮，可轉成 ZIP、TAR、TAR.GZ。
+- 支援實心壓縮、子資料夾、Unicode 檔名，以及 RAR 密碼輸入（含加密檔名）。密碼不會儲存。
+- 支援 RAR 分卷：將全部分卷放在同一資料夾，選擇第一卷，例如 `part1.rar`；舊式 `.rar`／`.r00` 從 `.rar` 開始。
+- 選檔清單、拖入、開啟方式和 Windows 右鍵選單均加入 RAR。
+- 內附官方免費 UnRAR 7.23，使用可攜版不需另外安裝 WinRAR 或 7-Zip。
+- RAR 只支援讀取；輸出格式可選 ZIP、TAR、TAR.GZ，不提供建立 RAR。
+- 保留原始檔，檢查內容完整性，拒絕不安全路徑及連結；分卷缺漏、密碼錯誤或檔案損壞會顯示原因。
+
+更新後請使用新版 `ArchiveStudio.exe`，並按一次「Windows 整合」更新本機捷徑與右鍵入口。
+
 ## 1.3：外觀更新
 
 - 統一淺色底、圓角卡片、字體層級與間距。
@@ -83,12 +95,12 @@ Windows 11 的舊式右鍵功能可能位於「顯示其他選項」中。
 | 操作 | 支援格式 |
 | --- | --- |
 | 建立壓縮包 | ZIP、TAR、TAR.GZ |
-| 解壓縮 | ZIP、TAR、TAR.GZ，另可讀取 TAR.BZ2、TAR.XZ |
+| 解壓縮 | ZIP、RAR3／RAR5、TAR、TAR.GZ，另可讀取 TAR.BZ2、TAR.XZ |
 | 格式互轉 | 上述可讀格式轉成 ZIP、TAR 或 TAR.GZ |
 
 ZIP 適合 Windows 分享。TAR 只有打包、不壓縮；TAR.GZ 同時打包與壓縮。
 「壓縮包互轉」處理壓縮包格式；照片內容格式請使用獨立的「照片轉檔」頁面。
-不支援 RAR、7Z、分卷壓縮、加密 ZIP，或寫入密碼。
+RAR 支援密碼與分卷讀取；不支援建立 RAR、7Z、建立分卷、加密 ZIP，或寫入密碼。
 JPG、MP4、現有壓縮檔等內容可能無法再顯著縮小。
 
 ## 檔案保護與限制
@@ -114,9 +126,10 @@ py -3.10 -m venv .venv
 測試（介面測試需要可開啟視窗的 Windows 環境）：
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest -v test_archive_engine test_launch test_photo_engine
+.\.venv\Scripts\python.exe -m unittest -v test_archive_engine test_rar_support test_launch test_photo_engine
 .\.venv\Scripts\python.exe layout_regression.py
 .\.venv\Scripts\python.exe gui_smoke_test.py
+.\.venv\Scripts\python.exe rar_ui_regression.py
 .\.venv\Scripts\python.exe photo_ui_regression.py
 ```
 
@@ -136,6 +149,7 @@ build.py 若遇到既有輸出，會建立新版本資料夾，不會清除舊�
 主要檔案：
 - archive_studio.py：視窗介面
 - archive_engine.py：壓縮、解壓與串流轉換
+- rar_support.py：RAR3／RAR5、密碼、分卷與單次串流讀取
 - photo_engine.py：照片格式轉換、拍攝方向、色彩、尺寸與批次處理
 - photo_panel.py：照片清單、預覽、快速預設與逐張結果
 - photo_workspace.py：照片頁左右分區配置
@@ -144,8 +158,9 @@ build.py 若遇到既有輸出，會建立新版本資料夾，不會清除舊�
 - gui_smoke_test.py：介面流程與配置檢查
 - build.py：Windows 可攜版打包
 
-本程式使用 Python 的 zipfile、tarfile、tkinter，加上 Pillow 與 pi-heif（僅讀取 HEIC）；EXE 以 PyInstaller 打包。
-Python、Tcl/Tk、PyInstaller、Pillow、pi-heif 及其附帶影像編解碼器的授權資訊見 LICENSES。
+本程式使用 Python 的 zipfile、tarfile、tkinter，加上 Pillow、pi-heif（僅讀取 HEIC）、rarfile、PyCryptodome 與官方 UnRAR；EXE 以 PyInstaller 打包。
+Python、Tcl/Tk、PyInstaller、Pillow、pi-heif、rarfile、PyCryptodome、UnRAR 及其附帶影像編解碼器的授權資訊見 LICENSES。
+UnRAR 的來源、SHA-256 與免費再散布授權位於 vendor/unrar；RAR 測試資料來自 rarfile v4.2，來源與 ISC 授權位於 testdata/rar。
 
 Windows 整合參考：
 https://learn.microsoft.com/en-us/windows/win32/shell/context

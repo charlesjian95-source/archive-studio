@@ -1,2 +1,4 @@
 Pillow==12.3.0
 pi-heif==1.4.0
+rarfile==4.2
+pycryptodome==4.3.0

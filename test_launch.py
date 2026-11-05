@@ -15,6 +15,16 @@ class LaunchTests(unittest.TestCase):
     def test_no_arguments_is_empty_compress(self):
         self.assertEqual(parse_launch([])[1], ("compress", []))
 
+    def test_rar_launch_and_right_click(self):
+        path = Path(__file__).parent / "testdata" / "rar" / "rar5-solid.rar"
+        self.assertEqual(parse_launch([str(path)])[1], ("extract", [str(path)]))
+        self.assertEqual(parse_launch(["--convert", str(path)])[1], ("convert", [str(path)]))
+        self.assertIn(".rar", ARCHIVE_EXTENSIONS)
+        plan = registration_plan(str(Path.cwd() / "ArchiveStudio.exe"))
+        commands = [value for key, name, value in plan if "\\.rar\\" in key and key.endswith("\\command")]
+        self.assertTrue(any("--extract" in value for value in commands))
+        self.assertTrue(any("--convert" in value for value in commands))
+
     def test_auto_detect_archive_without_extension_case_assumption(self):
         # Use an existing harmless file to exercise detection; no implicit extraction starts.
         path = Path(__file__).parent / ".test-runs" / "auto-detect.ZIP"

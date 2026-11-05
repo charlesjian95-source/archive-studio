@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import zipfile
+import hashlib
 from PIL import Image, ImageDraw
 
 BASE = Path(__file__).resolve().parent
@@ -31,6 +32,10 @@ def main():
     icon = assets / "studio.ico"
     if not icon.exists():
         icon_file(icon)
+    backend = BASE / "vendor" / "unrar" / "UnRAR.exe"
+    backend_info = json.loads((BASE / "vendor" / "unrar" / "provenance.json").read_text(encoding="utf-8"))
+    if hashlib.sha256(backend.read_bytes()).hexdigest() != backend_info["sha256"]:
+        raise RuntimeError("Bundled UnRAR checksum mismatch")
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     work = BASE / ".build" / stamp
     work.mkdir(parents=True)
@@ -40,6 +45,8 @@ def main():
     args = [sys.executable, "-m", "PyInstaller", "--windowed", "--onedir",
             "--name", "ArchiveStudio", "--icon", str(icon),
             "--collect-all", "pi_heif", "--exclude-module", "pillow_heif", "--exclude-module", "_pillow_heif",
+            "--exclude-module", "cryptography",
+            "--add-binary", str(backend) + ";vendor/unrar",
             "--add-data", str(icon) + ";assets",
             "--distpath", str(dist), "--workpath", str(work / "work"),
             "--specpath", str(work), str(BASE / "archive_studio.py")]
@@ -57,7 +64,7 @@ def main():
         if terms.exists():
             shutil.copyfile(terms, licenses / (name + "-license.terms"))
     for dist_name in ("pyinstaller", "pyinstaller-hooks-contrib", "altgraph",
-                      "packaging", "pefile", "pywin32-ctypes", "Pillow", "pi-heif"):
+                      "packaging", "pefile", "pywin32-ctypes", "Pillow", "pi-heif", "rarfile", "pycryptodome"):
         package = importlib.metadata.distribution(dist_name)
         for file in package.files or ():
             lower = str(file).lower()
@@ -68,26 +75,32 @@ def main():
                     target.parent.mkdir(parents=True, exist_ok=True)
                     if not target.exists():
                         shutil.copyfile(source, target)
+    shutil.copytree(BASE / "vendor" / "unrar", licenses / "UnRAR",
+                    ignore=shutil.ignore_patterns("*.exe"))
     (app / "BUILD-INFO.txt").write_text(
-        "Archive Studio 1.3\nBuilt: " + stamp +
+        "Archive Studio 1.4.0\nBuilt: " + stamp +
         "\nPython: " + sys.version + "\nPyInstaller: " +
         importlib.metadata.version("pyinstaller") + "\nPillow: " +
         importlib.metadata.version("Pillow") + "\npi-heif: " +
-        importlib.metadata.version("pi-heif") + "\n", encoding="utf-8")
+        importlib.metadata.version("pi-heif") + "\nrarfile: " +
+        importlib.metadata.version("rarfile") + "\nUnRAR: " + backend_info["version"] + "\n", encoding="utf-8")
     (licenses / "SOURCES.txt").write_text(
         "Python: https://www.python.org/downloads/source/\n"
         "Pillow: https://github.com/python-pillow/Pillow/tree/12.3.0\n"
         "pi-heif: https://github.com/bigcat88/pillow_heif/tree/master/pi-heif\n"
         "libheif: https://github.com/strukturag/libheif\n"
-        "Bundled codecs and their licenses: pi-heif/LICENSES_bundled.txt\n", encoding="utf-8")
+        "Bundled codecs and their licenses: pi-heif/LICENSES_bundled.txt\n"
+        "rarfile: https://github.com/markokr/rarfile/tree/v4.2\n"
+        "PyCryptodome: https://github.com/Legrandin/pycryptodome\n"
+        "UnRAR: https://www.rarlab.com/rar_add.htm (see UnRAR/provenance.json)\n", encoding="utf-8")
     (app / "加入右鍵選單.cmd").write_text('@echo off\r\n"%~dp0ArchiveStudio.exe" --register-shell\r\n', encoding="ascii")
-    zip_path = dist / "ArchiveStudio-Windows-x64.zip"
+    zip_path = dist / "ArchiveStudio-1.4.0-Windows-x64.zip"
     with zipfile.ZipFile(zip_path, "x", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for item in sorted(app.rglob("*")):
             if item.is_file():
                 archive.write(item, item.relative_to(dist))
     (BASE / "dist" / "latest.json").write_text(json.dumps({
-        "version": "1.3", "app": str(app), "exe": str(app / "ArchiveStudio.exe"),
+        "version": "1.4.0", "app": str(app), "exe": str(app / "ArchiveStudio.exe"),
         "zip": str(zip_path), "built": stamp}, indent=2), encoding="utf-8")
     print("APP:", app / "ArchiveStudio.exe")
     print("PORTABLE ZIP:", zip_path)

@@ -6,3 +6,7 @@
 .gitattributes text eol=lf
 *.ico binary
 *.heic binary
+*.rar binary
+*.exe binary
+testdata/rar/LICENSE text eol=lf -whitespace
+vendor/unrar/license.txt -whitespace

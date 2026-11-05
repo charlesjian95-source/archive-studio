@@ -9,7 +9,7 @@ import queue
 import sys
 import threading
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import archive_engine as engine
 from photo_panel import PhotoPanel
@@ -110,7 +110,7 @@ class ArchiveApp:
         self.output = tk.StringVar(value=str(Path.home() / "Downloads" / "Archive Studio"))
         self.format = tk.StringVar(value="ZIP")
         self.level = tk.StringVar(value="標準 · 速度與大小平衡")
-        root.title(APP_NAME + "  1.3")
+        root.title(APP_NAME + "  1.4")
         root.configure(bg=BG)
         width, height = root.winfo_screenwidth(), root.winfo_screenheight()
         if sys.platform == "win32":
@@ -349,7 +349,7 @@ class ArchiveApp:
             self.drop_hint.configure(text="將檔案或資料夾拖到這裡，或使用上方按鈕加入。")
         else:
             self.folder_button.pack_forget()
-            self.drop_hint.configure(text="拖入一個壓縮包，或按「選擇壓縮包」。")
+            self.drop_hint.configure(text="拖入 ZIP、RAR、TAR 壓縮包，或按「選擇壓縮包」。")
         self.files_title.configure(text="待壓縮的檔案與資料夾" if mode == "compress" else
                                   "要解壓縮的壓縮包" if mode == "extract" else "要轉換的壓縮包")
         self.refresh_tree()
@@ -357,7 +357,8 @@ class ArchiveApp:
         if self.selections[mode]:
             self.suggest_name()
         self.status.configure(text="準備就緒", fg=INK)
-        self.detail.configure(text="原始檔保留；同名輸出自動編號。")
+        self.detail.configure(text="原始檔保留；同名輸出自動編號。" if mode == "compress" else
+                              "可讀 ZIP、RAR、TAR；RAR 可解壓或轉成 ZIP／TAR。")
         self.update_start_state()
 
     def install_integration(self):
@@ -452,7 +453,7 @@ class ArchiveApp:
         if self.mode == "photos":
             self.photo_panel.choose_files()
             return
-        types = [("壓縮包", "*.zip *.tar *.gz *.tgz *.bz2 *.xz"), ("所有檔案", "*.*")]
+        types = [("壓縮包（ZIP／RAR／TAR）", engine.ARCHIVE_FILTER), ("所有檔案", "*.*")]
         if self.mode == "compress":
             paths = filedialog.askopenfilenames(parent=self.root, title="加入要壓縮的檔案", initialdir=self.last_input_dir, filetypes=[("所有檔案", "*")])
         else:
@@ -519,7 +520,7 @@ class ArchiveApp:
             available = bool(self.photo_panel.sources) and not self.photo_panel.loading
         self.start_button.configure(state="normal" if available and not self.busy else "disabled")
 
-    def start(self):
+    def start(self, password=None):
         if self.busy:
             return
         if self.mode == "photos":
@@ -557,12 +558,14 @@ class ArchiveApp:
                 if mode == "compress":
                     result = engine.compress(paths, output, name, fmt, level, progress, self.cancel)
                 elif mode == "convert":
-                    result = engine.convert(paths[0], output, name, fmt, level, progress, self.cancel)
+                    result = engine.convert(paths[0], output, name, fmt, level, progress, self.cancel, password=password)
                 else:
-                    result = engine.extract(paths[0], output, progress, self.cancel)
+                    result = engine.extract(paths[0], output, progress, self.cancel, password=password)
                 self.events.put(("done", result))
             except engine.Cancelled as exc:
                 self.events.put(("cancelled", str(exc)))
+            except engine.PasswordRequired as exc:
+                self.events.put(("password_required", str(exc)))
             except Exception as exc:
                 self.events.put(("error", str(exc) or type(exc).__name__))
 
@@ -606,6 +609,15 @@ class ArchiveApp:
                 self.open_button.configure(state="normal")
                 if self.mode == "photos":
                     self.photo_panel.finish(data)
+            elif event == "password_required":
+                self.status.configure(text="這個 RAR 需要密碼", fg=INK)
+                value = simpledialog.askstring("RAR 密碼", data + "\n密碼只用於本次工作，不會儲存。",
+                                               show="●", parent=self.root)
+                if value is None:
+                    self.status.configure(text="已取消輸入密碼", fg=MUTED)
+                    self.detail.configure(text="原始檔案已保留；按開始可重新輸入密碼。")
+                else:
+                    self.start(password=value)
             else:
                 self.status.configure(text="工作已取消" if event == "cancelled" else "無法完成", fg=MUTED if event == "cancelled" else "#b64c58")
                 self.detail.configure(text="原始檔案已保留。請查看訊息中的原因與未完成檔案位置。")
@@ -662,7 +674,7 @@ def parse_launch(arguments=None):
             mode = "photos"
     if not any((args.compress, args.extract, args.convert, args.photos)) and len(args.paths) == 1:
         path = Path(args.paths[0])
-        if path.is_file() and path.name.lower().endswith((".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tar.xz")):
+        if path.is_file() and path.name.lower().endswith(engine.READ_SUFFIXES):
             mode = "extract"
     return args, (mode, args.paths)
 
@@ -708,6 +720,7 @@ def main():
                 root.update()
                 time.sleep(.01)
         tree = app.photo_panel.tree if app.mode == "photos" else app.tree
+        import rarfile
         report = {"mode": app.mode, "paths": app.selections[app.mode],
                   "rows": [list(tree.item(i, "values")) for i in tree.get_children()],
                   "window": [root.winfo_width(), root.winfo_height()], "scale": app.scale,
@@ -715,7 +728,8 @@ def main():
                   "result": str(app.last_result.path) if app.last_result else None,
                   "files": app.last_result.files if app.last_result else 0,
                   "failures": getattr(app.last_result, "failures", 0),
-                  "codecs": list(photos.available_formats())}
+                  "codecs": list(photos.available_formats()),
+                  "rar_header_crypto": bool(rarfile._have_crypto)}
         Path(args.diagnostic).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         app.close()
         return

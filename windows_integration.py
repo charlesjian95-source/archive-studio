@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-ARCHIVE_EXTENSIONS = (".zip", ".tar", ".gz", ".tgz", ".bz2", ".xz")
+ARCHIVE_EXTENSIONS = (".zip", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz2", ".xz", ".txz")
 PHOTO_EXTENSIONS = (".jpg", ".jpeg", ".jfif", ".png", ".webp", ".bmp", ".dib", ".tif", ".tiff", ".gif", ".heic", ".heif", ".avif")
 CLASSES = r"Software\Classes"
 
@@ -87,7 +87,7 @@ $shortcut = $shell.CreateShortcut((Join-Path $programs 'Archive Studio 壓縮工
 $shortcut.TargetPath = $env:ARCHIVE_STUDIO_EXE
 $shortcut.WorkingDirectory = [IO.Path]::GetDirectoryName($env:ARCHIVE_STUDIO_EXE)
 $shortcut.IconLocation = $env:ARCHIVE_STUDIO_EXE + ',0'
-$shortcut.Description = 'ZIP 壓縮、解壓縮、照片轉檔、HEIC 轉 JPG'
+$shortcut.Description = 'ZIP 壓縮、RAR 解壓縮、照片轉檔、HEIC 轉 JPG'
 $shortcut.Save()
 $photoShortcut = $shell.CreateShortcut((Join-Path $programs 'Archive Studio 照片轉檔.lnk'))
 $photoShortcut.TargetPath = $env:ARCHIVE_STUDIO_EXE
